@@ -16,6 +16,10 @@ public class MenuItemService {
         this.menuItemRepository = menuItemRepository;
     }
 
+    public List<MenuItem> getMenuItemsByCategory(Long categoryId) {
+        return menuItemRepository.findByCategoryId(categoryId);
+    }
+
     /**
      * Retrieves all MenuItem records from the database.
      *

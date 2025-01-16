@@ -3,6 +3,7 @@ package com.la_cocina_backend.dto;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Data
@@ -12,4 +13,20 @@ public class CreateOrderRequest {
     private List<CartItemDTO> items;
     private String customerName;
     private String customerEmail;
+    private String specialNotes;
+
+    @Data
+    public static class CartItemDTO {
+        private Long menuItemId;
+        private int quantity;
+        private BigDecimal priceAtOrderTime;
+        private List<CustomizationDTO> customizations;
+
+        // Getters and Setters
+
+        @Data
+        public static class CustomizationDTO {
+            private Long id; // Customization ID
+        }
+    }
 }

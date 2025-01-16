@@ -2,10 +2,7 @@ package com.la_cocina_backend.services;
 
 import com.la_cocina_backend.dto.PaymentRequest;
 import com.la_cocina_backend.models.*;
-import com.la_cocina_backend.repositories.MenuItemRepository;
-import com.la_cocina_backend.repositories.OrderItemRepository;
-import com.la_cocina_backend.repositories.OrderRepository;
-import com.la_cocina_backend.repositories.PaymentRepository;
+import com.la_cocina_backend.repositories.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -13,7 +10,6 @@ import com.stripe.Stripe;
 import com.stripe.model.PaymentIntent;
 import com.stripe.param.PaymentIntentCreateParams;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
@@ -33,7 +29,13 @@ public class PaymentService {
     OrderItemRepository orderItemRepository;
 
     @Autowired
+    OrderItemCustomizationRepository orderItemCustomizationRepository;
+
+    @Autowired
     MenuItemRepository menuItemRepository;
+
+    @Autowired
+    CustomizationRepository customizationRepository;
 
     @Autowired
     private OrderRepository orderRepository;
@@ -146,14 +148,21 @@ public class PaymentService {
         for (OrderItem item : orderItems) {
             MenuItem menuItem = menuItemRepository.findById(item.getMenuItemId())
                     .orElseThrow(() -> new RuntimeException("Menu item not found"));
+
             orderDetails.append("- ").append(menuItem.getName())
                     .append(" x ").append(item.getQuantity())
-                    .append(" @ $").append(item.getItemPrice())
-                    .append(" each\n");
+                    .append(" @ $").append(menuItem.getPrice()).append(" each\n");
+
+            // Fetch and append customizations for this OrderItem
+            List<OrderItemCustomization> selectedCustomizations = orderItemCustomizationRepository.findByOrderItemId(item.getId());
+            for (OrderItemCustomization customization : selectedCustomizations) {
+                Customization customizationDetails = customization.getCustomization();
+                orderDetails.append("    * ").append(customizationDetails.getName())
+                        .append(" (+ $").append(customizationDetails.getPrice()).append(")\n");
+            }
         }
 
         orderDetails.append("\nTotal Amount: $").append(order.getTotalAmount()).append("\n");
-        orderDetails.append("\nThank you for your order!");
 
         // Prepare email contents
         String customerEmail = order.getCustomerEmail();
@@ -165,12 +174,14 @@ public class PaymentService {
         String customerBody = "Dear " + order.getCustomerName() + ",\n\n"
                 + "Thank you for your order at La Cocina. Here are your order details:\n\n"
                 + orderDetails.toString()
+                + "Special Note:" + order.getSpecialNotes()
                 + "\n\nWe look forward to serving you soon!\n\n"
                 + "Best Regards,\nLa Cocina Team";
 
         String adminBody = "A new order has been placed by " + order.getCustomerName() + "!\n\n"
                 + "Here are the order details:\n\n"
                 + orderDetails.toString()
+                + "Special Note: " + order.getSpecialNotes()
                 + "\n\nPlease prepare the order promptly.\n\n"
                 + "Best Regards,\nLa Cocina Team";
 

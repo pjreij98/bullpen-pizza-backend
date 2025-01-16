@@ -1,8 +1,9 @@
 package com.la_cocina_backend.repositories;
 
-import com.la_cocina_backend.models.Order;
+import com.la_cocina_backend.models.Category;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface OrderRepository extends JpaRepository<Order, Long> {}
+public interface CategoryRepository extends JpaRepository<Category, Long> {
+}

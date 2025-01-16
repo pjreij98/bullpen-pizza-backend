@@ -23,5 +23,10 @@ public class MenuItem {
     private String imageUrl;
     private Boolean isAvailable = true;
     private Integer stockQuantity;
+    private Boolean complexItem;
+
+    @Column(name = "category_id")
+    private Long categoryId;
+
 
 }
