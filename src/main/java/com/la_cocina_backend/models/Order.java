@@ -35,6 +35,8 @@ public class Order {
     private String customerName;
     private String customerEmail;
 
+    private String specialNotes;
+
     // No @OneToMany to OrderItem. We'll store orderId in OrderItem separately.
 
 }

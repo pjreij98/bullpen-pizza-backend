@@ -1,10 +1,9 @@
 package com.la_cocina_backend.controllers;
 
 import com.la_cocina_backend.dto.CreateOrderRequest;
-import com.la_cocina_backend.models.Order;
-import com.la_cocina_backend.models.OrderItem;
-import com.la_cocina_backend.models.OrderStatus;
-import com.la_cocina_backend.models.PaymentStatus;
+import com.la_cocina_backend.models.*;
+import com.la_cocina_backend.repositories.CustomizationRepository;
+import com.la_cocina_backend.repositories.OrderItemCustomizationRepository;
 import com.la_cocina_backend.repositories.OrderItemRepository;
 import com.la_cocina_backend.repositories.OrderRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +25,12 @@ public class OrderController {
     @Autowired
     private OrderItemRepository orderItemRepository;
 
+    @Autowired
+    private CustomizationRepository customizationRepository;
+
+    @Autowired
+    private OrderItemCustomizationRepository orderItemCustomizationRepository;
+
     @PostMapping
     public Order createOrder(@RequestBody CreateOrderRequest request) {
         // 1. Create a new Order
@@ -37,6 +42,7 @@ public class OrderController {
         newOrder.setCustomerName(request.getCustomerName());
         newOrder.setCustomerEmail(request.getCustomerEmail());
         newOrder.setTotalAmount(BigDecimal.ZERO); // temporarily set 0
+        newOrder.setSpecialNotes(request.getSpecialNotes());
 
         // Save the order first to get an ID
         newOrder = orderRepository.save(newOrder);
@@ -46,21 +52,38 @@ public class OrderController {
 
         if (request.getItems() != null) {
             for (var cartItem : request.getItems()) {
-                OrderItem item = new OrderItem();
-                item.setOrderId(newOrder.getId());
-                item.setMenuItemId(cartItem.getMenuItemId());
-                item.setQuantity(cartItem.getQuantity());
+                OrderItem orderItem = new OrderItem();
+                orderItem.setOrderId(newOrder.getId());
+                orderItem.setMenuItemId(cartItem.getMenuItemId());
+                orderItem.setQuantity(cartItem.getQuantity());
 
                 // Use price from the cart or look up in your MenuItem table
                 BigDecimal itemPrice = cartItem.getPriceAtOrderTime();
-                item.setItemPrice(itemPrice);
+                orderItem.setItemPrice(itemPrice);
 
                 // Accumulate total
                 BigDecimal itemTotal = itemPrice.multiply(BigDecimal.valueOf(cartItem.getQuantity()));
                 total = total.add(itemTotal);
 
                 // Save each OrderItem
-                orderItemRepository.save(item);
+                orderItem = orderItemRepository.save(orderItem);
+
+                // Handle Customizations for this OrderItem
+                if (cartItem.getCustomizations() != null) {
+                    for (var customization : cartItem.getCustomizations()) {
+                        OrderItemCustomization orderItemCustomization = new OrderItemCustomization();
+                        orderItemCustomization.setOrderItem(orderItem);
+
+                        // Fetch the Customization object using its ID
+                        Customization customizationEntity = customizationRepository.findById(customization.getId())
+                                .orElseThrow(() -> new RuntimeException("Customization not found"));
+
+                        orderItemCustomization.setCustomization(customizationEntity);
+
+                        // Save OrderItemCustomization
+                        orderItemCustomizationRepository.save(orderItemCustomization);
+                    }
+                }
             }
         }
 

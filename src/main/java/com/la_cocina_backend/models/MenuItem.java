@@ -17,11 +17,20 @@ public class MenuItem {
     private Long id;
 
     private String name;
+    @Column(columnDefinition = "TEXT")
     private String description;
     private BigDecimal price;
     private String category;
     private String imageUrl;
     private Boolean isAvailable = true;
     private Integer stockQuantity;
+    private Boolean complexItem;
+
+    @Column(name = "category_id")
+    private Long categoryId;
+
+    @Column(name = "is_featured")
+    private Boolean isFeatured;
+
 
 }
