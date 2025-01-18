@@ -85,7 +85,7 @@ public class PaymentService {
 //            res.put("orderItems", orderItems);
 //            // Send emails
 //            String customerEmail = order.getCustomerEmail(); // Assuming your order object has this field
-//            String adminEmail = "pjreij98@gmail.com"; // Replace with the restaurant admin email
+//            String adminEmail = "matthewklayme@gmail.com"; // Replace with the restaurant admin email
 //
 //            String customerSubject = "Order Confirmation - La Cocina";
 //            String customerBody = "Thank you for your order! Your order ID is #" + order.getId() + ".\n\n"
@@ -157,7 +157,7 @@ public class PaymentService {
 
         // Prepare email contents
         String customerEmail = order.getCustomerEmail();
-        String adminEmail = "pjreij98@gmail.com"; // Replace with admin email
+        String adminEmail = "matthewklayme@gmail.com"; // Replace with admin email
 
         String customerSubject = "Order Confirmation: Payment Successful - La Cocina";
         String adminSubject = "New Paid Order Received - La Cocina";

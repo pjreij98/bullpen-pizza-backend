@@ -16,7 +16,7 @@ public class EmailService {
         message.setTo(to);
         message.setSubject(subject);
         message.setText(body);
-        message.setFrom("pjreij98@gmail.com"); // Must match the username in application.properties
+        message.setFrom("matthewklayme@gmail.com"); // Must match the username in application.properties
 
         mailSender.send(message);
     }
