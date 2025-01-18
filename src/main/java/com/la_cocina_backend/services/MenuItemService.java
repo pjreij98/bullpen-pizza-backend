@@ -38,4 +38,8 @@ public class MenuItemService {
     public MenuItem createMenuItem(MenuItem menuItem) {
         return menuItemRepository.save(menuItem);
     }
+
+    public List<MenuItem> getFeaturedItems() {
+        return menuItemRepository.findByIsFeaturedTrue();
+    }
 }

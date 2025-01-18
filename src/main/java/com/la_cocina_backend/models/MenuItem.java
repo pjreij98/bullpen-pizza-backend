@@ -17,6 +17,7 @@ public class MenuItem {
     private Long id;
 
     private String name;
+    @Column(columnDefinition = "TEXT")
     private String description;
     private BigDecimal price;
     private String category;
@@ -27,6 +28,9 @@ public class MenuItem {
 
     @Column(name = "category_id")
     private Long categoryId;
+
+    @Column(name = "is_featured")
+    private Boolean isFeatured;
 
 
 }

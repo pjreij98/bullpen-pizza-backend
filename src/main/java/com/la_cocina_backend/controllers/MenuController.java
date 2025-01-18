@@ -27,4 +27,10 @@ public class MenuController {
     public MenuItem createMenuItem(@RequestBody MenuItem menuItem) {
         return menuItemService.createMenuItem(menuItem);
     }
+
+    @GetMapping("/featured")
+    public ResponseEntity<List<MenuItem>> getFeaturedItems() {
+        List<MenuItem> featuredItems = menuItemService.getFeaturedItems();
+        return ResponseEntity.ok(featuredItems);
+    }
 }

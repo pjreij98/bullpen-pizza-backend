@@ -139,7 +139,7 @@ public class PaymentService {
 
         // Build formatted email content
         StringBuilder orderDetails = new StringBuilder();
-        orderDetails.append("Customer Name: ").append(order.getCustomerName()).append("\n");
+        orderDetails.append("Customer Email: ").append(order.getCustomerEmail()).append("\n");
         orderDetails.append("Order ID: #").append(order.getId()).append("\n");
         orderDetails.append("Payment Status: ").append(order.getPaymentStatus()).append("\n");
         orderDetails.append("Order Details:\n");
