@@ -41,14 +41,13 @@ public class OrderController {
         newOrder.setCustomerId(request.getCustomerId());
         newOrder.setCustomerName(request.getCustomerName());
         newOrder.setCustomerEmail(request.getCustomerEmail());
-        newOrder.setTotalAmount(BigDecimal.ZERO); // temporarily set 0
         newOrder.setSpecialNotes(request.getSpecialNotes());
 
         // Save the order first to get an ID
         newOrder = orderRepository.save(newOrder);
 
-        // 2. Create OrderItems from the CartItemDTO list
-        BigDecimal total = BigDecimal.ZERO;
+        // 2. Calculate the subtotal
+        BigDecimal subtotal = BigDecimal.ZERO;
 
         if (request.getItems() != null) {
             for (var cartItem : request.getItems()) {
@@ -61,12 +60,12 @@ public class OrderController {
                 BigDecimal itemPrice = cartItem.getPriceAtOrderTime();
                 orderItem.setItemPrice(itemPrice);
 
-                // Accumulate total
+                // Accumulate subtotal
                 BigDecimal itemTotal = itemPrice.multiply(BigDecimal.valueOf(cartItem.getQuantity()));
-                total = total.add(itemTotal);
+                subtotal = subtotal.add(itemTotal);
 
                 // Save each OrderItem
-                orderItem = orderItemRepository.save(orderItem);
+                orderItemRepository.save(orderItem);
 
                 // Handle Customizations for this OrderItem
                 if (cartItem.getCustomizations() != null) {
@@ -74,26 +73,32 @@ public class OrderController {
                         OrderItemCustomization orderItemCustomization = new OrderItemCustomization();
                         orderItemCustomization.setOrderItem(orderItem);
 
-                        // Fetch the Customization object using its ID
                         Customization customizationEntity = customizationRepository.findById(customization.getId())
                                 .orElseThrow(() -> new RuntimeException("Customization not found"));
 
                         orderItemCustomization.setCustomization(customizationEntity);
 
-                        // Save OrderItemCustomization
                         orderItemCustomizationRepository.save(orderItemCustomization);
                     }
                 }
             }
         }
 
-        // 3. Update the order’s totalAmount
-        newOrder.setTotalAmount(total);
+        // 3. Calculate service fee and total amount
+        BigDecimal serviceFee = subtotal.multiply(BigDecimal.valueOf(0.0499)).add(BigDecimal.valueOf(0.30));
+        BigDecimal totalAmount = subtotal.add(serviceFee);
+
+        // Set calculated values
+        newOrder.setSubTotal(subtotal);
+        newOrder.setServiceFee(serviceFee);
+        newOrder.setTotalAmount(totalAmount);
+
+        // Save the final order with calculated amounts
         newOrder = orderRepository.save(newOrder);
 
-        // Return the completed order object
         return newOrder;
     }
+
 
     @GetMapping("/{orderId}")
     public Map<String, Object> getOrderDetails(@PathVariable Long orderId) {
