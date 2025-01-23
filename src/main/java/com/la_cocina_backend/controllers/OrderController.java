@@ -85,7 +85,7 @@ public class OrderController {
         }
 
         // 3. Calculate service fee and total amount
-        BigDecimal serviceFee = subtotal.multiply(BigDecimal.valueOf(0.0499)).add(BigDecimal.valueOf(0.30));
+        BigDecimal serviceFee = subtotal.multiply(BigDecimal.valueOf(0.049)).add(BigDecimal.valueOf(0.30));
         BigDecimal totalAmount = subtotal.add(serviceFee);
 
         // Set calculated values
