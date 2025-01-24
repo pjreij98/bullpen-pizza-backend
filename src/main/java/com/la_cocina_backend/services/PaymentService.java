@@ -203,6 +203,7 @@ public class PaymentService {
 
         orderDetails.append("\nSubtotal: $").append(order.getSubTotal()).append("\n");
         orderDetails.append("Service Fee: $").append(order.getServiceFee()).append("\n");
+        orderDetails.append("Taxes: $").append(order.getTax()).append("\n");
         orderDetails.append("\nTotal Amount: $").append(order.getTotalAmount()).append("\n");
         orderDetails.append("Estimated Pickup Time: ").append(formattedPickupRange).append("\n");
 

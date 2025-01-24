@@ -18,6 +18,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/orders")
 public class OrderController {
+    private static final BigDecimal TAX_RATE = new BigDecimal("0.0825");
 
     @Autowired
     private OrderRepository orderRepository;
@@ -84,12 +85,16 @@ public class OrderController {
             }
         }
 
+        // Calculate tax
+        BigDecimal taxAmount = subtotal.multiply(TAX_RATE);
+
         // 3. Calculate service fee and total amount
         BigDecimal serviceFee = subtotal.multiply(BigDecimal.valueOf(0.049)).add(BigDecimal.valueOf(0.30));
-        BigDecimal totalAmount = subtotal.add(serviceFee);
+        BigDecimal totalAmount = subtotal.add(taxAmount).add(serviceFee);
 
         // Set calculated values
         newOrder.setSubTotal(subtotal);
+        newOrder.setTax(taxAmount);
         newOrder.setServiceFee(serviceFee);
         newOrder.setTotalAmount(totalAmount);
 

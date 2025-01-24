@@ -23,5 +23,11 @@ public class Customization {
     private BigDecimal price;
     private Boolean isDefault;
 
+    @Column(name = "choice_type")
+    private String choiceType;  // 'single' or 'multiple'
+
+    @Column(name = "group_name")
+    private String groupName;  // e.g. "Main Option", "Drink Choice", etc.
+
     // Getters and Setters
 }
