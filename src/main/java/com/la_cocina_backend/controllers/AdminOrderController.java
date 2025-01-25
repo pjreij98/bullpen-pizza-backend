@@ -59,7 +59,7 @@ public class AdminOrderController {
 
     @GetMapping
     public ResponseEntity<List<Map<String, Object>>> getPendingOrdersWithDetails() {
-        List<Order> pendingOrders = orderRepository.findByStatusNotOrderById(OrderStatus.COMPLETED);
+        List<Order> pendingOrders = orderRepository.findByStatusOrderById(OrderStatus.PENDING);
 
         List<Map<String, Object>> orderDetailsList = pendingOrders.stream().map(order -> {
             Map<String, Object> orderDetails = new HashMap<>();

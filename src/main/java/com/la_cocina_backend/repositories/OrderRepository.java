@@ -9,6 +9,6 @@ import java.util.List;
 
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
-    List<Order> findByStatusNotOrderById(OrderStatus status);
+    List<Order> findByStatusOrderById(OrderStatus status);
 
 }
