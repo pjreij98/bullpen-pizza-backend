@@ -39,7 +39,7 @@ public class AdminOrderController {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
 
-        // Update the order status to COMPLETED (or READY)
+        // Update the order status to READY
         order.setStatus(OrderStatus.READY_FOR_PICKUP);
         orderRepository.save(order);
 
