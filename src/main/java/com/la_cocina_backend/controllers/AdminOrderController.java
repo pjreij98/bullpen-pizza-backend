@@ -94,6 +94,7 @@ public class AdminOrderController {
             orderDetails.put("serviceFee", order.getServiceFee());
             orderDetails.put("totalAmount", order.getTotalAmount());
             orderDetails.put("specialNotes", order.getSpecialNotes());
+            orderDetails.put("tax", order.getTax());
 
             // Fetch Order Items
             List<OrderItem> orderItems = orderItemRepository.findByOrderId(order.getId());
@@ -143,6 +144,7 @@ public class AdminOrderController {
             orderDetails.put("serviceFee", order.getServiceFee());
             orderDetails.put("totalAmount", order.getTotalAmount());
             orderDetails.put("specialNotes", order.getSpecialNotes());
+            orderDetails.put("tax", order.getTax());
 
             // Fetch Order Items
             List<OrderItem> orderItems = orderItemRepository.findByOrderId(order.getId());
