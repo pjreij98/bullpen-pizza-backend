@@ -80,7 +80,7 @@ public class AdminOrderController {
 
     @GetMapping("/readyForPickup")
     public ResponseEntity<List<Map<String, Object>>> getReadyForPickupOrdersWithDetails() {
-        List<Order> pendingOrders = orderRepository.findByStatusOrderById(OrderStatus.READY_FOR_PICKUP);
+        List<Order> pendingOrders = orderRepository.findByStatusAndPaymentStatusOrderById(OrderStatus.READY_FOR_PICKUP, PaymentStatus.PAID);
 
         List<Map<String, Object>> orderDetailsList = pendingOrders.stream().map(order -> {
             Map<String, Object> orderDetails = new HashMap<>();
@@ -130,7 +130,7 @@ public class AdminOrderController {
 
     @GetMapping("/pending")
     public ResponseEntity<List<Map<String, Object>>> getPendingOrdersWithDetails() {
-        List<Order> pendingOrders = orderRepository.findByStatusOrderById(OrderStatus.PENDING);
+        List<Order> pendingOrders = orderRepository.findByStatusAndPaymentStatusOrderById(OrderStatus.PENDING, PaymentStatus.PAID);
 
         List<Map<String, Object>> orderDetailsList = pendingOrders.stream().map(order -> {
             Map<String, Object> orderDetails = new HashMap<>();

@@ -16,10 +16,7 @@ public class MenuController {
     private MenuItemService menuItemService;
 
     @GetMapping
-    public ResponseEntity<List<MenuItem>> getMenuItems(@RequestParam(required = false) Long categoryId) {
-        if (categoryId != null) {
-            return ResponseEntity.ok(menuItemService.getMenuItemsByCategory(categoryId));
-        }
+    public ResponseEntity<List<MenuItem>> getMenuItems() {
         return ResponseEntity.ok(menuItemService.getAllMenuItems());
     }
 

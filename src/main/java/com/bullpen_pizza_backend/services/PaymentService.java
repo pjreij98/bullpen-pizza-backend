@@ -3,6 +3,7 @@ package com.bullpen_pizza_backend.services;
 import com.bullpen_pizza_backend.dto.PaymentRequest;
 import com.bullpen_pizza_backend.models.*;
 import com.bullpen_pizza_backend.repositories.*;
+import jakarta.mail.MessagingException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -46,6 +47,9 @@ public class PaymentService {
     @Value("${stripe.secretKey}")
     private String stripeSecretKey;
 
+    @Value("${spring.mail.username}")
+    private String adminEmail;
+
     /**
      * Create a PaymentIntent in Stripe
      */
@@ -79,36 +83,6 @@ public class PaymentService {
             payment.setStatus(PaymentStatus.INITIATED);
             paymentRepository.save(payment);
 
-
-//            // Fetch all OrderItems for this Order
-//            List<OrderItem> orderItems = orderItemRepository.findByOrderId(order.getId());
-//
-//            // Construct a custom response
-//            Map<String, Object> res = new HashMap<>();
-//            res.put("order", order);
-//            res.put("orderItems", orderItems);
-//            // Send emails
-//            String customerEmail = order.getCustomerEmail(); // Assuming your order object has this field
-//            String adminEmail = "matthewklayme@gmail.com"; // Replace with the restaurant admin email
-//
-//            String customerSubject = "Order Confirmation - Bullpen Pizza";
-//            String customerBody = "Thank you for your order! Your order ID is #" + order.getId() + ".\n\n"
-//                    + "Details:\n"
-//                    + res.toString() + "\n"
-//                    + "Total: $" + order.getTotalAmount();
-//
-//            String adminSubject = "New Order Received - Bullpen Pizza";
-//            String adminBody = "A new order has been placed by " + order.getCustomerName() + "!\n\n"
-//                    + "Order ID: #" + order.getId() + "\n"
-//                    + "Details:\n"
-//                    + res.toString() + "\n"
-//                    + "Total: $" + order.getTotalAmount();
-//
-//            // Send emails
-//            emailService.sendEmail(customerEmail, customerSubject, customerBody);
-//            emailService.sendEmail(adminEmail, adminSubject, adminBody);
-
-
             // 5. Return clientSecret to frontend
             Map<String, Object> response = new HashMap<>();
             response.put("clientSecret", paymentIntent.getClientSecret());
@@ -122,35 +96,35 @@ public class PaymentService {
 
 
 
-    public void confirmPayment(String transactionId, Long orderId) {
-        // Fetch the payment and order
+    public void confirmPayment(String transactionId, Long orderId) throws MessagingException, MessagingException {
+        // Fetch the payment and order (unchanged)
         Payment payment = paymentRepository.findByTransactionId(transactionId);
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
 
-        // Update payment status
+        // Update payment status (unchanged)
         payment.setStatus(PaymentStatus.PAID);
         paymentRepository.save(payment);
 
-        // Update order status
+        // Update order status (unchanged)
         order.setPaymentStatus(PaymentStatus.PAID);
         orderRepository.save(order);
 
-        // Fetch all OrderItems for this Order
+        // Fetch all OrderItems for this Order (unchanged)
         List<OrderItem> orderItems = orderItemRepository.findByOrderId(order.getId());
 
-        // Base time and calculations
+        // Base time and calculations (unchanged)
         LocalDateTime orderTime = order.getOrderDate();
         int baseTime = 15; // 15 minutes base preparation time
         int extraTime = 0;
 
-        // Count total items and customizations
+        // Count total items and customizations (unchanged)
         int totalItems = orderItems.stream().mapToInt(OrderItem::getQuantity).sum();
         int totalCustomizations = orderItems.stream()
                 .mapToInt(item -> orderItemCustomizationRepository.findByOrderItemId(item.getId()).size())
                 .sum();
 
-        // Add extra time based on order size
+        // Add extra time based on order size (unchanged)
         if (totalItems > 5) {
             extraTime += 10;
         }
@@ -158,80 +132,131 @@ public class PaymentService {
             extraTime += 20;
         }
 
-        // Add extra time for each customization (2 min per customization)
+        // Add extra time for each customization (2 min per customization) (unchanged)
         extraTime += totalCustomizations * 2;
 
-        // Add extra time for peak hours (12 PM - 2 PM, 6 PM - 8 PM)
+        // Add extra time for peak hours (12 PM - 2 PM, 6 PM - 8 PM) (unchanged)
         int orderHour = orderTime.getHour();
         if ((orderHour >= 12 && orderHour < 14) || (orderHour >= 18 && orderHour < 20)) {
             extraTime += 20;
         }
 
-        // Calculate pickup time range (add breathing room of 10 minutes)
+        // Calculate pickup time range (add breathing room of 10 minutes) (unchanged)
         LocalDateTime estimatedPickupMin = orderTime.plusMinutes(baseTime + extraTime);
         LocalDateTime estimatedPickupMax = estimatedPickupMin.plusMinutes(10);
 
-        // Format pickup time range
+        // Format pickup time range (unchanged)
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("hh:mm a");
         String formattedPickupRange = estimatedPickupMin.format(formatter) + " - " + estimatedPickupMax.format(formatter);
 
+        // Build HTML email content for order details (replacing plain-text StringBuilder)
+        StringBuilder orderDetailsHtml = new StringBuilder();
+        orderDetailsHtml.append("<table style='width: 100%; border-collapse: collapse; font-family: Arial, sans-serif;'>");
+        orderDetailsHtml.append("<tr><td style='padding: 8px; font-weight: bold;'>Customer Email:</td><td style='padding: 8px;'>")
+                .append(order.getCustomerEmail()).append("</td></tr>");
+        orderDetailsHtml.append("<tr><td style='padding: 8px; font-weight: bold;'>Order ID:</td><td style='padding: 8px;'>#")
+                .append(order.getId()).append("</td></tr>");
+        orderDetailsHtml.append("<tr><td style='padding: 8px; font-weight: bold;'>Payment Status:</td><td style='padding: 8px;'>")
+                .append(order.getPaymentStatus()).append("</td></tr>");
+        orderDetailsHtml.append("<tr><td style='padding: 8px; font-weight: bold;'>Order Details:</td><td style='padding: 8px;'></td></tr>");
 
-        // Build formatted email content
-        StringBuilder orderDetails = new StringBuilder();
-        orderDetails.append("Customer Email: ").append(order.getCustomerEmail()).append("\n");
-        orderDetails.append("Order ID: #").append(order.getId()).append("\n");
-        orderDetails.append("Payment Status: ").append(order.getPaymentStatus()).append("\n");
-        orderDetails.append("Order Details:\n");
-
-        // Add item details to the email body
+        // Add item details to the HTML table
         for (OrderItem item : orderItems) {
             MenuItem menuItem = menuItemRepository.findById(item.getMenuItemId())
                     .orElseThrow(() -> new RuntimeException("Menu item not found"));
 
-            orderDetails.append("- ").append(menuItem.getName())
+            orderDetailsHtml.append("<tr><td style='padding: 8px 8px 8px 16px;' colspan='2'>")
+                    .append("- ").append(menuItem.getName())
                     .append(" x ").append(item.getQuantity())
-                    .append(" @ $").append(menuItem.getPrice()).append(" each\n");
+                    .append(" @ $").append(String.format("%.2f", menuItem.getPrice())).append(" each</td></tr>");
 
             // Fetch and append customizations for this OrderItem
             List<OrderItemCustomization> selectedCustomizations = orderItemCustomizationRepository.findByOrderItemId(item.getId());
             for (OrderItemCustomization customization : selectedCustomizations) {
                 Customization customizationDetails = customization.getCustomization();
-                orderDetails.append("    * ").append(customizationDetails.getName())
-                        .append(" (+ $").append(customizationDetails.getPrice()).append(")\n");
+                orderDetailsHtml.append("<tr><td style='padding: 4px 4px 4px 32px;' colspan='2'>")
+                        .append("&#x2022; ").append(customizationDetails.getName())
+                        .append(" (+ $").append(String.format("%.2f", customizationDetails.getPrice())).append(")</td></tr>");
             }
         }
 
-        orderDetails.append("\nSubtotal: $").append(order.getSubTotal()).append("\n");
-        orderDetails.append("Service Fee: $").append(order.getServiceFee()).append("\n");
-        orderDetails.append("Taxes: $").append(order.getTax()).append("\n");
-        orderDetails.append("\nTotal Amount: $").append(order.getTotalAmount()).append("\n");
-        orderDetails.append("Estimated Pickup Time: ").append(formattedPickupRange).append("\n");
+        orderDetailsHtml.append("<tr><td style='padding: 8px; font-weight: bold;'>Subtotal:</td><td style='padding: 8px;'>$")
+                .append(String.format("%.2f", order.getSubTotal())).append("</td></tr>");
+        orderDetailsHtml.append("<tr><td style='padding: 8px; font-weight: bold;'>Service Fee:</td><td style='padding: 8px;'>$")
+                .append(String.format("%.2f", order.getServiceFee())).append("</td></tr>");
+        orderDetailsHtml.append("<tr><td style='padding: 8px; font-weight: bold;'>Taxes:</td><td style='padding: 8px;'>$")
+                .append(String.format("%.2f", order.getTax())).append("</td></tr>");
+        orderDetailsHtml.append("<tr><td style='padding: 8px; font-weight: bold;'>Total Amount:</td><td style='padding: 8px;'>$")
+                .append(String.format("%.2f", order.getTotalAmount())).append("</td></tr>");
+        orderDetailsHtml.append("<tr><td style='padding: 8px; font-weight: bold;'>Estimated Pickup Time:</td><td style='padding: 8px;'>")
+                .append(formattedPickupRange).append("</td></tr>");
+        orderDetailsHtml.append("</table>");
 
-
-        // Prepare email contents
+        // Prepare HTML email templates for customer and admin
         String customerEmail = order.getCustomerEmail();
-        String adminEmail = "matthewklayme@gmail.com"; // Replace with admin email
-
         String customerSubject = "Order Confirmation: Payment Successful - Bullpen Pizza";
         String adminSubject = "New Paid Order Received - Bullpen Pizza";
 
-        String customerBody = "Dear " + order.getCustomerName() + ",\n\n"
-                + "Thank you for your order at Bullpen Pizza. Here are your order details:\n\n"
-                + orderDetails.toString()
-                + "Special Note: " + order.getSpecialNotes()
-                + "\n\nWe look forward to serving you soon!\n\n"
-                + "Best Regards,\nBullpen Pizza Team";
+        // Customer HTML email
+        String customerHtmlBody = "<!DOCTYPE html>" +
+                "<html>" +
+                "<head>" +
+                "<meta charset='UTF-8'>" +
+                "</head>" +
+                "<body style='font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4;'>" +
+                "<div style='max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);'>" +
+                "<div style='background-color: #2ecc71; padding: 20px; text-align: center; border-top-left-radius: 8px; border-top-right-radius: 8px;'>" +
+                "<h1 style='color: #ffffff; margin: 0;'>Order Confirmation</h1>" +
+                "</div>" +
+                "<div style='padding: 20px;'>" +
+                "<p>Dear " + order.getCustomerName() + ",</p>" +
+                "<p>Thank you for your order at Bullpen Pizza. Here are your order details:</p>" +
+                orderDetailsHtml.toString() +
+                "<p><strong>Special Note:</strong> " + (order.getSpecialNotes() != null ? order.getSpecialNotes() : "None") + "</p>" +
+                "<p>We look forward to serving you soon!</p>" +
+                "<p style='margin-top: 20px;'>Best Regards,<br>Bullpen Pizza Team</p>" +
+                "</div>" +
+                "<div style='background-color: #f1f1f1; padding: 10px; text-align: center; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;'>" +
+                "<p style='color: #777; font-size: 12px; margin: 0;'>© 2025 Bullpen Pizza. All rights reserved.</p>" +
+                "</div>" +
+                "</div>" +
+                "</body>" +
+                "</html>";
 
-        String adminBody = "A new order has been placed by " + order.getCustomerName() + "!\n\n"
-                + "Here are the order details:\n\n"
-                + orderDetails.toString()
-                + "Special Note: " + order.getSpecialNotes()
-                + "\n\nPlease prepare the order promptly.\n\n"
-                + "Best Regards,\nBullpen Pizza Team";
+        // Admin HTML email
+        String adminHtmlBody = "<!DOCTYPE html>" +
+                "<html>" +
+                "<head>" +
+                "<meta charset='UTF-8'>" +
+                "</head>" +
+                "<body style='font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4;'>" +
+                "<div style='max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);'>" +
+                "<div style='background-color: #e74c3c; padding: 20px; text-align: center; border-top-left-radius: 8px; border-top-right-radius: 8px;'>" +
+                "<h1 style='color: #ffffff; margin: 0;'>New Paid Order</h1>" +
+                "</div>" +
+                "<div style='padding: 20px;'>" +
+                "<p>A new order has been placed by " + order.getCustomerName() + "!</p>" +
+                "<p>Here are the order details:</p>" +
+                orderDetailsHtml.toString() +
+                "<p><strong>Special Note:</strong> " + (order.getSpecialNotes() != null ? order.getSpecialNotes() : "None") + "</p>" +
+                "<p>Please prepare the order promptly.</p>" +
+                "<p style='margin-top: 20px;'>Best Regards,<br>Bullpen Pizza Team</p>" +
+                "</div>" +
+                "<div style='background-color: #f1f1f1; padding: 10px; text-align: center; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;'>" +
+                "<p style='color: #777; font-size: 12px; margin: 0;'>© 2025 Bullpen Pizza. All rights reserved.</p>" +
+                "</div>" +
+                "</div>" +
+                "</body>" +
+                "</html>";
 
-        // Send emails
-        emailService.sendEmail(customerEmail, customerSubject, customerBody);
-        emailService.sendEmail(adminEmail, adminSubject, adminBody);
+        // Send HTML emails
+        try {
+            emailService.sendHtmlEmail(customerEmail, customerSubject, customerHtmlBody);
+            emailService.sendHtmlEmail(adminEmail, adminSubject, adminHtmlBody);
+        } catch (MessagingException e) {
+            // Log the error (e.g., using SLF4J or similar)
+            System.err.println("Failed to send email: " + e.getMessage());
+        }
     }
 
 

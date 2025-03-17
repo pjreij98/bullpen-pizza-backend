@@ -6,6 +6,7 @@ import com.bullpen_pizza_backend.models.Payment;
 import com.bullpen_pizza_backend.repositories.OrderRepository;
 import com.bullpen_pizza_backend.repositories.PaymentRepository;
 import com.bullpen_pizza_backend.services.PaymentService;
+import jakarta.mail.MessagingException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -47,7 +48,7 @@ public class PaymentController {
     }
 
     @PostMapping("/{orderId}/confirmPayment/stripe")
-    public void confirmStripePayment(@PathVariable Long orderId) {
+    public void confirmStripePayment(@PathVariable Long orderId) throws MessagingException {
         // 1. Find Order
         Payment payment = paymentRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Payment not found"));
