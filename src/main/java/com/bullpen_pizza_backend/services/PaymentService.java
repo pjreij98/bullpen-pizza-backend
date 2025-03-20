@@ -149,104 +149,318 @@ public class PaymentService {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("hh:mm a");
         String formattedPickupRange = estimatedPickupMin.format(formatter) + " - " + estimatedPickupMax.format(formatter);
 
-        // Build HTML email content for order details (replacing plain-text StringBuilder)
-        StringBuilder orderDetailsHtml = new StringBuilder();
-        orderDetailsHtml.append("<table style='width: 100%; border-collapse: collapse; font-family: Arial, sans-serif;'>");
-        orderDetailsHtml.append("<tr><td style='padding: 8px; font-weight: bold;'>Customer Email:</td><td style='padding: 8px;'>")
-                .append(order.getCustomerEmail()).append("</td></tr>");
-        orderDetailsHtml.append("<tr><td style='padding: 8px; font-weight: bold;'>Order ID:</td><td style='padding: 8px;'>#")
-                .append(order.getId()).append("</td></tr>");
-        orderDetailsHtml.append("<tr><td style='padding: 8px; font-weight: bold;'>Payment Status:</td><td style='padding: 8px;'>")
-                .append(order.getPaymentStatus()).append("</td></tr>");
-        orderDetailsHtml.append("<tr><td style='padding: 8px; font-weight: bold;'>Order Details:</td><td style='padding: 8px;'></td></tr>");
+        // Build HTML email content for order details - IMPROVED VERSION
+        String customerEmail = order.getCustomerEmail();
+        String customerSubject = "Order Confirmation: Your Bullpen Pizza Order #" + order.getId();
+        String adminSubject = "New Order #" + order.getId() + " - Ready for Preparation";
 
-        // Add item details to the HTML table
+        // Customer HTML email - IMPROVED VERSION
+        String customerHtmlBody = "<!DOCTYPE html>\n" +
+                "<html>\n" +
+                "<head>\n" +
+                "    <meta charset='UTF-8'>\n" +
+                "    <meta name='viewport' content='width=device-width, initial-scale=1.0'>\n" +
+                "    <title>Order Confirmation</title>\n" +
+                "</head>\n" +
+                "<body style='font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f8f8f8; color: #333333;'>\n" +
+                "    <table role='presentation' cellspacing='0' cellpadding='0' border='0' align='center' width='100%' style='max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); overflow: hidden;'>\n" +
+                "        <!-- HEADER -->\n" +
+                "        <tr>\n" +
+                "            <td style='background-color: #c6632c; padding: 30px 40px; text-align: center;'>\n" +
+                "                <h1 style='color: #ffffff; margin: 0; font-size: 28px;'>Order Confirmation</h1>\n" +
+                "            </td>\n" +
+                "        </tr>\n" +
+                "        <!-- MAIN CONTENT -->\n" +
+                "        <tr>\n" +
+                "            <td style='padding: 40px 40px 20px 40px;'>\n" +
+                "                <p style='margin-top: 0; font-size: 16px;'>Dear " + order.getCustomerName() + ",</p>\n" +
+                "                <p style='font-size: 16px;'>Thank you for ordering from Bullpen Pizza! Your order has been received and will be ready for pickup soon.</p>\n" +
+                "                \n" +
+                "                <!-- ORDER DETAILS HEADER -->\n" +
+                "                <table role='presentation' width='100%' cellspacing='0' cellpadding='0' border='0' style='margin: 30px 0 10px 0;'>\n" +
+                "                    <tr>\n" +
+                "                        <td style='background-color: #f5f5f5; padding: 12px 15px; border-top-left-radius: 6px; border-top-right-radius: 6px; border-bottom: 2px solid #c6632c;'>\n" +
+                "                            <h2 style='margin: 0; color: #c6632c; font-size: 18px;'>Order Summary</h2>\n" +
+                "                        </td>\n" +
+                "                    </tr>\n" +
+                "                </table>\n" +
+                "                \n" +
+                "                <!-- ORDER INFO -->\n" +
+                "                <table role='presentation' width='100%' cellspacing='0' cellpadding='0' border='0' style='margin-bottom: 25px; border-collapse: separate; border-spacing: 0;'>\n" +
+                "                    <tr>\n" +
+                "                        <td style='padding: 12px 15px; border-bottom: 1px solid #eeeeee; font-weight: bold; width: 40%;'>Order Number:</td>\n" +
+                "                        <td style='padding: 12px 15px; border-bottom: 1px solid #eeeeee;'>#" + order.getId() + "</td>\n" +
+                "                    </tr>\n" +
+                "                    <tr>\n" +
+                "                        <td style='padding: 12px 15px; border-bottom: 1px solid #eeeeee; font-weight: bold;'>Order Date:</td>\n" +
+                "                        <td style='padding: 12px 15px; border-bottom: 1px solid #eeeeee;'>" +
+                order.getOrderDate().format(DateTimeFormatter.ofPattern("MMMM d, yyyy 'at' hh:mm a")) + "</td>\n" +
+                "                    </tr>\n" +
+                "                    <tr>\n" +
+                "                        <td style='padding: 12px 15px; border-bottom: 1px solid #eeeeee; font-weight: bold;'>Estimated Pickup:</td>\n" +
+                "                        <td style='padding: 12px 15px; border-bottom: 1px solid #eeeeee; font-weight: bold; color: #c6632c;'>" +
+                formattedPickupRange + "</td>\n" +
+                "                    </tr>\n";
+
+        // Add special notes if present
+        if (order.getSpecialNotes() != null && !order.getSpecialNotes().isEmpty()) {
+            customerHtmlBody += "                    <tr>\n" +
+                    "                        <td style='padding: 12px 15px; border-bottom: 1px solid #eeeeee; font-weight: bold;'>Special Notes:</td>\n" +
+                    "                        <td style='padding: 12px 15px; border-bottom: 1px solid #eeeeee; font-style: italic;'>" +
+                    order.getSpecialNotes() + "</td>\n" +
+                    "                    </tr>\n";
+        }
+
+        customerHtmlBody += "                </table>\n" +
+                "                \n" +
+                "                <!-- ORDER ITEMS -->\n" +
+                "                <table role='presentation' width='100%' cellspacing='0' cellpadding='0' border='0' style='margin-bottom: 25px; border-collapse: separate; border-spacing: 0;'>\n" +
+                "                    <tr>\n" +
+                "                        <td colspan='3' style='background-color: #f5f5f5; padding: 12px 15px; border-top-left-radius: 6px; border-top-right-radius: 6px; border-bottom: 2px solid #c6632c;'>\n" +
+                "                            <h3 style='margin: 0; color: #333333; font-size: 16px;'>Items</h3>\n" +
+                "                        </td>\n" +
+                "                    </tr>\n";
+
+        // Add item details
         for (OrderItem item : orderItems) {
             MenuItem menuItem = menuItemRepository.findById(item.getMenuItemId())
                     .orElseThrow(() -> new RuntimeException("Menu item not found"));
 
-            orderDetailsHtml.append("<tr><td style='padding: 8px 8px 8px 16px;' colspan='2'>")
-                    .append("- ").append(menuItem.getName())
-                    .append(" x ").append(item.getQuantity())
-                    .append(" @ $").append(String.format("%.2f", menuItem.getPrice())).append(" each</td></tr>");
+            customerHtmlBody += "                    <tr>\n" +
+                    "                        <td style='padding: 15px; border-bottom: 1px solid #eeeeee; width: 60%;'>\n" +
+                    "                            <span style='font-weight: bold; font-size: 16px;'>" + menuItem.getName() + "</span>\n" +
+                    "                        </td>\n" +
+                    "                        <td style='padding: 15px; border-bottom: 1px solid #eeeeee; text-align: center;'>\n" +
+                    "                            x" + item.getQuantity() + "\n" +
+                    "                        </td>\n" +
+                    "                        <td style='padding: 15px; border-bottom: 1px solid #eeeeee; text-align: right;'>\n" +
+                    "                            $" + String.format("%.2f", menuItem.getPrice()) + " each\n" +
+                    "                        </td>\n" +
+                    "                    </tr>\n";
 
             // Fetch and append customizations for this OrderItem
             List<OrderItemCustomization> selectedCustomizations = orderItemCustomizationRepository.findByOrderItemId(item.getId());
-            for (OrderItemCustomization customization : selectedCustomizations) {
-                Customization customizationDetails = customization.getCustomization();
-                orderDetailsHtml.append("<tr><td style='padding: 4px 4px 4px 32px;' colspan='2'>")
-                        .append("&#x2022; ").append(customizationDetails.getName())
-                        .append(" (+ $").append(String.format("%.2f", customizationDetails.getPrice())).append(")</td></tr>");
+            if (!selectedCustomizations.isEmpty()) {
+                customerHtmlBody += "                    <tr>\n" +
+                        "                        <td colspan='3' style='padding: 0 15px 15px 30px; border-bottom: 1px solid #eeeeee;'>\n";
+
+                for (OrderItemCustomization customization : selectedCustomizations) {
+                    Customization customizationDetails = customization.getCustomization();
+                    customerHtmlBody += "                            <div style='color: #666666; font-size: 14px; margin-bottom: 5px;'>\n" +
+                            "                                • " + customizationDetails.getName();
+
+                    if (customizationDetails.getPrice().compareTo(BigDecimal.ZERO) > 0) {
+                        customerHtmlBody += " <span style='color: #c6632c;'>(+ $" +
+                                String.format("%.2f", customizationDetails.getPrice()) + ")</span>";
+                    }
+
+                    customerHtmlBody += "\n                            </div>\n";
+                }
+
+                customerHtmlBody += "                        </td>\n" +
+                        "                    </tr>\n";
             }
         }
 
-        orderDetailsHtml.append("<tr><td style='padding: 8px; font-weight: bold;'>Subtotal:</td><td style='padding: 8px;'>$")
-                .append(String.format("%.2f", order.getSubTotal())).append("</td></tr>");
-        orderDetailsHtml.append("<tr><td style='padding: 8px; font-weight: bold;'>Service Fee:</td><td style='padding: 8px;'>$")
-                .append(String.format("%.2f", order.getServiceFee())).append("</td></tr>");
-        orderDetailsHtml.append("<tr><td style='padding: 8px; font-weight: bold;'>Taxes:</td><td style='padding: 8px;'>$")
-                .append(String.format("%.2f", order.getTax())).append("</td></tr>");
-        orderDetailsHtml.append("<tr><td style='padding: 8px; font-weight: bold;'>Total Amount:</td><td style='padding: 8px;'>$")
-                .append(String.format("%.2f", order.getTotalAmount())).append("</td></tr>");
-        orderDetailsHtml.append("<tr><td style='padding: 8px; font-weight: bold;'>Estimated Pickup Time:</td><td style='padding: 8px;'>")
-                .append(formattedPickupRange).append("</td></tr>");
-        orderDetailsHtml.append("</table>");
-
-        // Prepare HTML email templates for customer and admin
-        String customerEmail = order.getCustomerEmail();
-        String customerSubject = "Order Confirmation: Payment Successful - Bullpen Pizza";
-        String adminSubject = "New Paid Order Received - Bullpen Pizza";
-
-        // Customer HTML email
-        String customerHtmlBody = "<!DOCTYPE html>" +
-                "<html>" +
-                "<head>" +
-                "<meta charset='UTF-8'>" +
-                "</head>" +
-                "<body style='font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4;'>" +
-                "<div style='max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);'>" +
-                "<div style='background-color: #2ecc71; padding: 20px; text-align: center; border-top-left-radius: 8px; border-top-right-radius: 8px;'>" +
-                "<h1 style='color: #ffffff; margin: 0;'>Order Confirmation</h1>" +
-                "</div>" +
-                "<div style='padding: 20px;'>" +
-                "<p>Dear " + order.getCustomerName() + ",</p>" +
-                "<p>Thank you for your order at Bullpen Pizza. Here are your order details:</p>" +
-                orderDetailsHtml.toString() +
-                "<p><strong>Special Note:</strong> " + (order.getSpecialNotes() != null ? order.getSpecialNotes() : "None") + "</p>" +
-                "<p>We look forward to serving you soon!</p>" +
-                "<p style='margin-top: 20px;'>Best Regards,<br>Bullpen Pizza Team</p>" +
-                "</div>" +
-                "<div style='background-color: #f1f1f1; padding: 10px; text-align: center; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;'>" +
-                "<p style='color: #777; font-size: 12px; margin: 0;'>© 2025 Bullpen Pizza. All rights reserved.</p>" +
-                "</div>" +
-                "</div>" +
-                "</body>" +
+        // Add order totals
+        customerHtmlBody += "                </table>\n" +
+                "                \n" +
+                "                <!-- ORDER TOTALS -->\n" +
+                "                <table role='presentation' width='100%' cellspacing='0' cellpadding='0' border='0' style='margin-bottom: 30px; border-collapse: separate; border-spacing: 0;'>\n" +
+                "                    <tr>\n" +
+                "                        <td style='padding: 12px 15px; text-align: right; font-weight: bold;'>Subtotal:</td>\n" +
+                "                        <td style='padding: 12px 15px; text-align: right; width: 100px;'>$" +
+                String.format("%.2f", order.getSubTotal()) + "</td>\n" +
+                "                    </tr>\n" +
+                "                    <tr>\n" +
+                "                        <td style='padding: 12px 15px; text-align: right; font-weight: bold;'>Tax:</td>\n" +
+                "                        <td style='padding: 12px 15px; text-align: right;'>$" +
+                String.format("%.2f", order.getTax()) + "</td>\n" +
+                "                    </tr>\n" +
+                "                    <tr>\n" +
+                "                        <td style='padding: 12px 15px; text-align: right; font-weight: bold;'>Service Fee:</td>\n" +
+                "                        <td style='padding: 12px 15px; text-align: right;'>$" +
+                String.format("%.2f", order.getServiceFee()) + "</td>\n" +
+                "                    </tr>\n" +
+                "                    <tr>\n" +
+                "                        <td style='padding: 15px; text-align: right; font-weight: bold; font-size: 18px; border-top: 2px solid #eeeeee;'>Total:</td>\n" +
+                "                        <td style='padding: 15px; text-align: right; font-weight: bold; font-size: 18px; border-top: 2px solid #eeeeee; color: #c6632c;'>$" +
+                String.format("%.2f", order.getTotalAmount()) + "</td>\n" +
+                "                    </tr>\n" +
+                "                </table>\n" +
+                "                \n" +
+                "                <p style='font-size: 16px;'>We're preparing your order with care and it will be ready for pickup at our restaurant soon.</p>\n" +
+                "                <p style='font-size: 16px;'>If you have any questions, please contact us at <a href='tel:2812420190' style='color: #c6632c; text-decoration: none;'>(281) 242-0190</a>.</p>\n" +
+                "                <p style='font-size: 16px;'>Thank you for choosing Bullpen Pizza!</p>\n" +
+                "            </td>\n" +
+                "        </tr>\n" +
+                "        <!-- FOOTER -->\n" +
+                "        <tr>\n" +
+                "            <td style='padding: 20px; background-color: #f5f5f5; text-align: center; font-size: 14px; color: #666666;'>\n" +
+                "                <p style='margin: 0 0 10px 0;'><strong>Bullpen Pizza</strong><br>14019 Southwest Fwy, Ste 204, Sugar Land, TX 77478</p>\n" +
+                "                <p style='margin: 0; font-size: 12px;'>© 2025 Bullpen Pizza. All rights reserved.</p>\n" +
+                "            </td>\n" +
+                "        </tr>\n" +
+                "    </table>\n" +
+                "</body>\n" +
                 "</html>";
 
-        // Admin HTML email
-        String adminHtmlBody = "<!DOCTYPE html>" +
-                "<html>" +
-                "<head>" +
-                "<meta charset='UTF-8'>" +
-                "</head>" +
-                "<body style='font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4;'>" +
-                "<div style='max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);'>" +
-                "<div style='background-color: #e74c3c; padding: 20px; text-align: center; border-top-left-radius: 8px; border-top-right-radius: 8px;'>" +
-                "<h1 style='color: #ffffff; margin: 0;'>New Paid Order</h1>" +
-                "</div>" +
-                "<div style='padding: 20px;'>" +
-                "<p>A new order has been placed by " + order.getCustomerName() + "!</p>" +
-                "<p>Here are the order details:</p>" +
-                orderDetailsHtml.toString() +
-                "<p><strong>Special Note:</strong> " + (order.getSpecialNotes() != null ? order.getSpecialNotes() : "None") + "</p>" +
-                "<p>Please prepare the order promptly.</p>" +
-                "<p style='margin-top: 20px;'>Best Regards,<br>Bullpen Pizza Team</p>" +
-                "</div>" +
-                "<div style='background-color: #f1f1f1; padding: 10px; text-align: center; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;'>" +
-                "<p style='color: #777; font-size: 12px; margin: 0;'>© 2025 Bullpen Pizza. All rights reserved.</p>" +
-                "</div>" +
-                "</div>" +
-                "</body>" +
+        // Admin HTML email - IMPROVED VERSION
+        String adminHtmlBody = "<!DOCTYPE html>\n" +
+                "<html>\n" +
+                "<head>\n" +
+                "    <meta charset='UTF-8'>\n" +
+                "    <meta name='viewport' content='width=device-width, initial-scale=1.0'>\n" +
+                "    <title>New Order Alert</title>\n" +
+                "</head>\n" +
+                "<body style='font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f8f8f8; color: #333333;'>\n" +
+                "    <table role='presentation' cellspacing='0' cellpadding='0' border='0' align='center' width='100%' style='max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); overflow: hidden;'>\n" +
+                "        <!-- HEADER -->\n" +
+                "        <tr>\n" +
+                "            <td style='background-color: #d9534f; padding: 30px 40px; text-align: center;'>\n" +
+                "                <h1 style='color: #ffffff; margin: 0; font-size: 28px;'>New Order Alert</h1>\n" +
+                "            </td>\n" +
+                "        </tr>\n" +
+                "        <!-- MAIN CONTENT -->\n" +
+                "        <tr>\n" +
+                "            <td style='padding: 40px 40px 20px 40px;'>\n" +
+                "                <div style='background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin-bottom: 25px;'>\n" +
+                "                    <h2 style='margin-top: 0; margin-bottom: 10px; color: #856404; font-size: 18px;'>Action Required</h2>\n" +
+                "                    <p style='margin-bottom: 0; font-size: 16px;'>A new order has been received and needs to be prepared.</p>\n" +
+                "                </div>\n" +
+                "                \n" +
+                "                <!-- ORDER DETAILS HEADER -->\n" +
+                "                <table role='presentation' width='100%' cellspacing='0' cellpadding='0' border='0' style='margin: 20px 0 10px 0;'>\n" +
+                "                    <tr>\n" +
+                "                        <td style='background-color: #f5f5f5; padding: 12px 15px; border-top-left-radius: 6px; border-top-right-radius: 6px; border-bottom: 2px solid #d9534f;'>\n" +
+                "                            <h2 style='margin: 0; color: #d9534f; font-size: 18px;'>Order Information</h2>\n" +
+                "                        </td>\n" +
+                "                    </tr>\n" +
+                "                </table>\n" +
+                "                \n" +
+                "                <!-- ORDER INFO -->\n" +
+                "                <table role='presentation' width='100%' cellspacing='0' cellpadding='0' border='0' style='margin-bottom: 25px; border-collapse: separate; border-spacing: 0;'>\n" +
+                "                    <tr>\n" +
+                "                        <td style='padding: 12px 15px; border-bottom: 1px solid #eeeeee; font-weight: bold; width: 40%;'>Order Number:</td>\n" +
+                "                        <td style='padding: 12px 15px; border-bottom: 1px solid #eeeeee; font-weight: bold;'>#" + order.getId() + "</td>\n" +
+                "                    </tr>\n" +
+                "                    <tr>\n" +
+                "                        <td style='padding: 12px 15px; border-bottom: 1px solid #eeeeee; font-weight: bold;'>Customer:</td>\n" +
+                "                        <td style='padding: 12px 15px; border-bottom: 1px solid #eeeeee;'>" +
+                order.getCustomerName() + " (" + order.getCustomerEmail() + ")</td>\n" +
+                "                    </tr>\n" +
+                "                    <tr>\n" +
+                "                        <td style='padding: 12px 15px; border-bottom: 1px solid #eeeeee; font-weight: bold;'>Order Date:</td>\n" +
+                "                        <td style='padding: 12px 15px; border-bottom: 1px solid #eeeeee;'>" +
+                order.getOrderDate().format(DateTimeFormatter.ofPattern("MMMM d, yyyy 'at' hh:mm a")) + "</td>\n" +
+                "                    </tr>\n" +
+                "                    <tr>\n" +
+                "                        <td style='padding: 12px 15px; border-bottom: 1px solid #eeeeee; font-weight: bold;'>Target Pickup Time:</td>\n" +
+                "                        <td style='padding: 12px 15px; border-bottom: 1px solid #eeeeee; font-weight: bold; color: #d9534f;'>" +
+                formattedPickupRange + "</td>\n" +
+                "                    </tr>\n";
+
+        // Add special notes if present
+        if (order.getSpecialNotes() != null && !order.getSpecialNotes().isEmpty()) {
+            adminHtmlBody += "                    <tr>\n" +
+                    "                        <td style='padding: 12px 15px; border-bottom: 1px solid #eeeeee; font-weight: bold;'>Special Notes:</td>\n" +
+                    "                        <td style='padding: 12px 15px; border-bottom: 1px solid #eeeeee; background-color: #f8f9fa; font-weight: bold;'>" +
+                    order.getSpecialNotes() + "</td>\n" +
+                    "                    </tr>\n";
+        }
+
+        adminHtmlBody += "                </table>\n" +
+                "                \n" +
+                "                <!-- ORDER ITEMS -->\n" +
+                "                <table role='presentation' width='100%' cellspacing='0' cellpadding='0' border='0' style='margin-bottom: 25px; border-collapse: separate; border-spacing: 0;'>\n" +
+                "                    <tr>\n" +
+                "                        <td colspan='3' style='background-color: #f5f5f5; padding: 12px 15px; border-top-left-radius: 6px; border-top-right-radius: 6px; border-bottom: 2px solid #d9534f;'>\n" +
+                "                            <h3 style='margin: 0; color: #333333; font-size: 16px;'>Order Items</h3>\n" +
+                "                        </td>\n" +
+                "                    </tr>\n";
+
+        // Add item details
+        for (OrderItem item : orderItems) {
+            MenuItem menuItem = menuItemRepository.findById(item.getMenuItemId())
+                    .orElseThrow(() -> new RuntimeException("Menu item not found"));
+
+            adminHtmlBody += "                    <tr>\n" +
+                    "                        <td style='padding: 15px; border-bottom: 1px solid #eeeeee; width: 60%; font-weight: bold;'>\n" +
+                    "                            <span style='font-size: 16px;'>" + menuItem.getName() + "</span>\n" +
+                    "                        </td>\n" +
+                    "                        <td style='padding: 15px; border-bottom: 1px solid #eeeeee; text-align: center; font-weight: bold;'>\n" +
+                    "                            x" + item.getQuantity() + "\n" +
+                    "                        </td>\n" +
+                    "                        <td style='padding: 15px; border-bottom: 1px solid #eeeeee; text-align: right;'>\n" +
+                    "                            $" + String.format("%.2f", menuItem.getPrice()) + " each\n" +
+                    "                        </td>\n" +
+                    "                    </tr>\n";
+
+            // Fetch and append customizations for this OrderItem
+            List<OrderItemCustomization> selectedCustomizations = orderItemCustomizationRepository.findByOrderItemId(item.getId());
+            if (!selectedCustomizations.isEmpty()) {
+                adminHtmlBody += "                    <tr>\n" +
+                        "                        <td colspan='3' style='padding: 0 15px 15px 30px; border-bottom: 1px solid #eeeeee;'>\n";
+
+                for (OrderItemCustomization customization : selectedCustomizations) {
+                    Customization customizationDetails = customization.getCustomization();
+                    adminHtmlBody += "                            <div style='color: #666666; font-size: 14px; margin-bottom: 5px;'>\n" +
+                            "                                • " + customizationDetails.getName();
+
+                    if (customizationDetails.getPrice().compareTo(BigDecimal.ZERO) > 0) {
+                        adminHtmlBody += " <span style='color: #d9534f;'>(+ $" +
+                                String.format("%.2f", customizationDetails.getPrice()) + ")</span>";
+                    }
+
+                    adminHtmlBody += "\n                            </div>\n";
+                }
+
+                adminHtmlBody += "                        </td>\n" +
+                        "                    </tr>\n";
+            }
+        }
+
+        // Add order totals
+        adminHtmlBody += "                </table>\n" +
+                "                \n" +
+                "                <!-- ORDER TOTALS -->\n" +
+                "                <table role='presentation' width='100%' cellspacing='0' cellpadding='0' border='0' style='margin-bottom: 30px; border-collapse: separate; border-spacing: 0;'>\n" +
+                "                    <tr>\n" +
+                "                        <td style='padding: 12px 15px; text-align: right; font-weight: bold;'>Subtotal:</td>\n" +
+                "                        <td style='padding: 12px 15px; text-align: right; width: 100px;'>$" +
+                String.format("%.2f", order.getSubTotal()) + "</td>\n" +
+                "                    </tr>\n" +
+                "                    <tr>\n" +
+                "                        <td style='padding: 12px 15px; text-align: right; font-weight: bold;'>Tax:</td>\n" +
+                "                        <td style='padding: 12px 15px; text-align: right;'>$" +
+                String.format("%.2f", order.getTax()) + "</td>\n" +
+                "                    </tr>\n" +
+                "                    <tr>\n" +
+                "                        <td style='padding: 12px 15px; text-align: right; font-weight: bold;'>Service Fee:</td>\n" +
+                "                        <td style='padding: 12px 15px; text-align: right;'>$" +
+                String.format("%.2f", order.getServiceFee()) + "</td>\n" +
+                "                    </tr>\n" +
+                "                    <tr>\n" +
+                "                        <td style='padding: 15px; text-align: right; font-weight: bold; font-size: 18px; border-top: 2px solid #eeeeee;'>Total:</td>\n" +
+                "                        <td style='padding: 15px; text-align: right; font-weight: bold; font-size: 18px; border-top: 2px solid #eeeeee; color: #d9534f;'>$" +
+                String.format("%.2f", order.getTotalAmount()) + "</td>\n" +
+                "                    </tr>\n" +
+                "                </table>\n" +
+                "                \n" +
+                "                <div style='background-color: #f8d7da; border-left: 4px solid #d9534f; padding: 15px; margin-bottom: 25px;'>\n" +
+                "                    <p style='margin: 0; font-weight: bold; font-size: 16px;'>Please prepare this order promptly to meet the target pickup time.</p>\n" +
+                "                </div>\n" +
+                "            </td>\n" +
+                "        </tr>\n" +
+                "        <!-- FOOTER -->\n" +
+                "        <tr>\n" +
+                "            <td style='padding: 20px; background-color: #f5f5f5; text-align: center; font-size: 14px; color: #666666;'>\n" +
+                "                <p style='margin: 0 0 10px 0;'>This is an automated system notification.</p>\n" +
+                "                <p style='margin: 0; font-size: 12px;'>© 2025 Bullpen Pizza. All rights reserved.</p>\n" +
+                "            </td>\n" +
+                "        </tr>\n" +
+                "    </table>\n" +
+                "</body>\n" +
                 "</html>";
 
         // Send HTML emails
